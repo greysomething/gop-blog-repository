@@ -55,7 +55,7 @@ export async function runScore() {
           citations: citations ?? [],
           medical_legal_flag: topic?.medical_legal_flag ?? false,
         }),
-        maxTokens: 2000,
+        maxTokens: 4000,
       });
 
       // Hard-gate logic, enforced server-side regardless of model's forces_review value.

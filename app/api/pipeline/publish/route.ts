@@ -14,13 +14,22 @@ export async function GET(req: Request) {
     if (r instanceof Response) return r;
     throw r;
   }
-  const result = await runPublish();
-  if (result.published > 0) {
-    revalidatePath("/");
-    revalidatePath("/sitemap.xml");
-    revalidatePath("/rss.xml");
+  try {
+    const result = await runPublish();
+    if (result.published > 0) {
+      revalidatePath("/");
+      revalidatePath("/sitemap.xml");
+      revalidatePath("/rss.xml");
+    }
+    return NextResponse.json({ ok: true, ...result });
+  } catch (e) {
+    const err = e as Error & { status?: number; error?: unknown };
+    console.error("[publish] error", err);
+    return NextResponse.json(
+      { ok: false, error: err.message ?? String(e), status: err.status, details: err.error },
+      { status: 500 },
+    );
   }
-  return NextResponse.json({ ok: true, ...result });
 }
 
 export const POST = GET;

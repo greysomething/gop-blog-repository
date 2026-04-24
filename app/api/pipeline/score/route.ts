@@ -13,8 +13,17 @@ export async function GET(req: Request) {
     if (r instanceof Response) return r;
     throw r;
   }
-  const result = await runScore();
-  return NextResponse.json({ ok: true, ...result });
+  try {
+    const result = await runScore();
+    return NextResponse.json({ ok: true, ...result });
+  } catch (e) {
+    const err = e as Error & { status?: number; error?: unknown };
+    console.error("[score] error", err);
+    return NextResponse.json(
+      { ok: false, error: err.message ?? String(e), status: err.status, details: err.error },
+      { status: 500 },
+    );
+  }
 }
 
 export const POST = GET;

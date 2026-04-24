@@ -27,10 +27,18 @@ export async function fetchFeed(
   sourceType: "rss" | "sitemap" | "scrape",
 ): Promise<FeedItem[]> {
   if (sourceType === "scrape") return []; // scrape handled by caller per-source if needed
-  const res = await fetch(feedUrl, {
-    headers: { "User-Agent": "GOP-Blog-Research/1.0 (+https://blog.giftofparenthood.org)" },
-    next: { revalidate: 0 },
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15_000);
+  let res: Response;
+  try {
+    res = await fetch(feedUrl, {
+      headers: { "User-Agent": "GOP-Blog-Research/1.0 (+https://blog.giftofparenthood.org)" },
+      next: { revalidate: 0 },
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
   if (!res.ok) throw new Error(`Feed ${feedUrl} → ${res.status}`);
   const xml = await res.text();
   const doc = parser.parse(xml);

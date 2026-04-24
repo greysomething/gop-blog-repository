@@ -28,17 +28,103 @@ export async function callJSON<T = unknown>(opts: {
     .map((b) => b.text)
     .join("");
 
-  // Tolerate code fences or leading prose.
-  const match = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/) ?? [null, text];
-  const raw = (match[1] ?? text).trim();
-  const start = raw.indexOf("{");
-  const end = raw.lastIndexOf("}");
-  if (start < 0 || end < 0) throw new Error(`No JSON object in model output: ${text.slice(0, 200)}`);
-
-  const json = JSON.parse(raw.slice(start, end + 1)) as T;
+  const json = parseLooseJSON<T>(text);
   return {
     json,
     tokens_in: res.usage.input_tokens,
     tokens_out: res.usage.output_tokens,
   };
+}
+
+// Extract the outermost balanced JSON object from text, tolerating code fences
+// and unescaped control characters (newlines/tabs inside string values, which
+// Claude occasionally emits in long outputs).
+export function parseLooseJSON<T>(text: string): T {
+  const candidates: string[] = [];
+
+  // 1. Prefer fenced blocks.
+  for (const m of text.matchAll(/```(?:json)?\s*([\s\S]*?)\s*```/g)) {
+    candidates.push(m[1].trim());
+  }
+  // 2. Fall back to whole text.
+  candidates.push(text.trim());
+
+  for (const c of candidates) {
+    const obj = extractBalancedObject(c);
+    if (!obj) continue;
+    try {
+      return JSON.parse(obj) as T;
+    } catch {
+      // Tolerate unescaped control chars in string values.
+      try {
+        return JSON.parse(sanitizeControlChars(obj)) as T;
+      } catch {
+        /* try next candidate */
+      }
+    }
+  }
+
+  throw new Error(`Could not parse JSON from model output: ${text.slice(0, 400)}`);
+}
+
+function extractBalancedObject(s: string): string | null {
+  const start = s.indexOf("{");
+  if (start < 0) return null;
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  for (let i = start; i < s.length; i++) {
+    const ch = s[i];
+    if (escape) {
+      escape = false;
+      continue;
+    }
+    if (ch === "\\") {
+      escape = true;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) continue;
+    if (ch === "{") depth++;
+    else if (ch === "}") {
+      depth--;
+      if (depth === 0) return s.slice(start, i + 1);
+    }
+  }
+  return null;
+}
+
+function sanitizeControlChars(json: string): string {
+  let out = "";
+  let inString = false;
+  let escape = false;
+  for (const ch of json) {
+    if (escape) {
+      out += ch;
+      escape = false;
+      continue;
+    }
+    if (ch === "\\") {
+      out += ch;
+      escape = true;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      out += ch;
+      continue;
+    }
+    if (inString) {
+      if (ch === "\n") out += "\\n";
+      else if (ch === "\r") out += "\\r";
+      else if (ch === "\t") out += "\\t";
+      else out += ch;
+    } else {
+      out += ch;
+    }
+  }
+  return out;
 }

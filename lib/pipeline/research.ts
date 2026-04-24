@@ -82,7 +82,7 @@ export async function runResearch() {
     model: MODEL_RESEARCH,
     system: prompt.body,
     user: JSON.stringify(userPayload),
-    maxTokens: 3000,
+    maxTokens: 16000,
   });
 
   let inserted = 0;
