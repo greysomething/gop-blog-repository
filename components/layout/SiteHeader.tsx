@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronLeft, Menu, X } from "lucide-react";
+import { ChevronDown, ChevronLeft, Fingerprint, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const LOGO_URL =
@@ -31,9 +31,6 @@ export function SiteHeader() {
         </a>
 
         <nav className="hidden md:flex items-center space-x-8 font-sans">
-          <Link href="/" className="text-white hover:text-orange-100 transition-colors font-medium">
-            Blog
-          </Link>
           <a
             href="https://giftofparenthood.org/new-fundraiser/"
             className="text-white hover:text-orange-100 transition-colors font-medium"
@@ -130,15 +127,25 @@ export function SiteHeader() {
           </div>
         </nav>
 
-        <div className="md:hidden">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setShowMobile((v) => !v)}
-            className="text-white hover:bg-white/20"
+        <div className="flex items-center gap-1 md:gap-2 md:ml-4">
+          <Link
+            href="/admin/login"
+            aria-label="Admin sign-in"
+            title="Admin sign-in"
+            className="p-2 rounded-md text-white/40 hover:text-white hover:bg-white/10 transition-colors"
           >
-            {showMobile ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </Button>
+            <Fingerprint className="w-5 h-5" />
+          </Link>
+          <div className="md:hidden">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowMobile((v) => !v)}
+              className="text-white hover:bg-white/20"
+            >
+              {showMobile ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -146,7 +153,6 @@ export function SiteHeader() {
         <div className="md:hidden fixed inset-0 top-[68px] bg-white z-40 overflow-y-auto font-sans">
           <div className="p-6 space-y-4">
             {[
-              { href: "/", label: "Blog" },
               { href: "https://giftofparenthood.org/new-fundraiser/", label: "Start a Fundraiser" },
               { href: "http://directory.giftofparenthood.org/", label: "Find Providers" },
               { href: "https://grant.giftofparenthood.org", label: "Grant Program" },
